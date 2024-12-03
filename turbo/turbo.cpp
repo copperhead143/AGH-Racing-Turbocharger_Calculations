@@ -116,12 +116,13 @@ int main() {
 
 	daneE85_100HP.intake_press = Pa_to_psi(calc_intake_press(
 		atmospheric_press_Pa, press_coefficient, TIP_press_losses));
-	std::cout << "intake pressure = " << daneE85_100HP.intake_press << "\n";
+	std::cout << "intake pressure [psi]= " << daneE85_100HP.intake_press << "\n";
 
 	daneE85_100HP.press_ratio = calc_press_ratio(daneE85_100HP.intake_press, daneE85_100HP.compressor_discharge_press);
 	std::cout << "PRESSURE RATIO = " << daneE85_100HP.press_ratio << "\n";
 
-
+	std::cout << "gauge boost pressure = " << psi_to_bar(
+		daneE85_100HP.compressor_discharge_press - Pa_to_psi(atmospheric_press_Pa))<<"\n";
 
 	return 0;
 }
