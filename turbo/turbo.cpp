@@ -9,7 +9,7 @@ struct data{
 	double AFR;
 	double BSFC; // lb/min
 	double Wa_peak_power; // lb/min
-	double Wa_peak_torque; // lb/min
+	double Wa_peak_torque; // lb/min, obliczane z MAP_req dla peak_power
 	double R; //(in*lb) / (lb*R)
 	int Tm; //stopnie Farenhajta
 	double VE; //wydajnoœæ objêtoœciowa
@@ -65,8 +65,8 @@ double calc_press_ratio(double press_before_turbo, double compressor_discharge_p
 	return compressor_discharge_press / press_before_turbo;
 }
 
-double calc_Wa_peak_torque() {
-	return 0;
+double calc_Wa_peak_torque(double MAP_req_peak_power, double VE, double N, double Vd, double R, double Tm) {
+	return (MAP_req_peak_power * VE * (N*0.5) * Vd) / (R*(460+Tm));
 }
 
 int main() {
@@ -121,7 +121,11 @@ int main() {
 	daneE85_100HP.press_ratio = calc_press_ratio(daneE85_100HP.intake_press, daneE85_100HP.compressor_discharge_press);
 	std::cout << "PRESSURE RATIO = " << daneE85_100HP.press_ratio << "\n";
 
-	std::cout << "gauge boost pressure = " << psi_to_bar(
+	daneE85_100HP.Wa_peak_torque = calc_Wa_peak_torque(
+		daneE85_100HP.MAP_req_peak_power,daneE85_100HP.VE,daneE85_100HP.N_peak_torque,daneE85_100HP.Vd,daneE85_100HP.R,daneE85_100HP.Tm);
+	std::cout << "Wa for peak torque = " << daneE85_100HP.Wa_peak_torque << "\n";
+
+	std::cout << "gauge boost pressure [bar] = " << psi_to_bar(
 		daneE85_100HP.compressor_discharge_press - Pa_to_psi(atmospheric_press_Pa))<<"\n";
 
 	return 0;
