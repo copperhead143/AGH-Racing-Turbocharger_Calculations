@@ -70,63 +70,103 @@ double calc_Wa_peak_torque(double MAP_req_peak_power, double VE, double N, doubl
 }
 
 int main() {
+    double atmospheric_press_Pa = 101300;
+    double press_coefficient = 0.82;
+    double TIP_press_losses = 0.5;
+    double press_losses_intercooler = 2;
 
-	//wyniki results;
-
-	//dane uniwersale do wszystkich obliczen
-	double atmospheric_press_Pa = 101300; //cisnienie atmosferyczne w paskalach
-	double press_coefficient = 0.82; //wspolczynnik spadku cisnienia spowodowanego przez zwezke
-	double TIP_press_losses = 0.5; //spadek cisnienienia na TIPie w PSI
-	double press_losses_intercooler = 2; //2psi spadku cisnienia powodowanego poprzez intercooler
+    int powers[] = { 120, 110, 100, 90, 80, 70 };
 
 
-	std::cout << "=========================\nObliczenia dla E85, target_hp=100\n=========================\n";
+    std::cout << "==================\nObliczenia dla wody E85R\n==================\n\n";
+    for (int power : powers) {
+        std::cout << "=========================\nObliczenia dla E85, target_hp=" << power << "\n=========================\n";
 
+        data daneE85_custom;
 
-	data daneE85_100HP;
-	
-	daneE85_100HP.HP = 100;
-	daneE85_100HP.AFR = 8;
-	daneE85_100HP.BSFC = 0.65;
-	daneE85_100HP.R = 639.6;
-	daneE85_100HP.Tm = 104; //40 stopni celcjusza
-	daneE85_100HP.VE = 0.9;
-	daneE85_100HP.N_peak_power = 10000;
-	daneE85_100HP.N_peak_torque = 6000;
-	daneE85_100HP.Vd = 29.3; //podane w calach szesciennych
+        daneE85_custom.HP = power;
+        daneE85_custom.AFR = 8;
+        daneE85_custom.BSFC = 0.65;
+        daneE85_custom.R = 639.6;
+        daneE85_custom.Tm = 104;
+        daneE85_custom.VE = 0.9;
+        daneE85_custom.N_peak_power = 10000;
+        daneE85_custom.N_peak_torque = 6000;
+        daneE85_custom.Vd = 29.3;
 
-	//results.Wa.push_back(calcWa(daneE85_100HP.HP, daneE85_100HP.AFR, daneE85_100HP.BSFC));
-	//results.MAPreq.push_back(calcMAPreq(
-	//	daneE85_100HP.Wa, daneE85_100HP.R, daneE85_100HP.Tm, daneE85_100HP.VE, daneE85_100HP.N, daneE85_100HP.Vd));
+        daneE85_custom.Wa_peak_power = calc_Wa(daneE85_custom.HP, daneE85_custom.AFR, daneE85_custom.BSFC);
+        daneE85_custom.MAP_req_peak_power = calc_MAP_req(
+            daneE85_custom.Wa_peak_power, daneE85_custom.R, daneE85_custom.Tm, daneE85_custom.VE,
+            daneE85_custom.N_peak_power, daneE85_custom.Vd);
 
-	daneE85_100HP.Wa_peak_power = calc_Wa(daneE85_100HP.HP, daneE85_100HP.AFR, daneE85_100HP.BSFC);
-	daneE85_100HP.MAP_req_peak_power = calc_MAP_req(
-		daneE85_100HP.Wa_peak_power, daneE85_100HP.R, daneE85_100HP.Tm, daneE85_100HP.VE, daneE85_100HP.N_peak_power, daneE85_100HP.Vd);
+        std::cout << "Wa = " << daneE85_custom.Wa_peak_power << "\n";
+        std::cout << "MAP_req = " << daneE85_custom.MAP_req_peak_power << "\n";
 
-	std::cout << "Wa = " << daneE85_100HP.Wa_peak_power<<"\n";
-	std::cout << "MAP_req = " << daneE85_100HP.MAP_req_peak_power<<"\n";
+        daneE85_custom.compressor_discharge_press = calc_compressor_discharge_press(
+            daneE85_custom.MAP_req_peak_power, press_losses_intercooler);
+        std::cout << "compressor_dischage_pressure [psi] = " << daneE85_custom.compressor_discharge_press << "\n";
 
-	//do tej pory dzia³a
+        daneE85_custom.intake_press = Pa_to_psi(calc_intake_press(
+            atmospheric_press_Pa, press_coefficient, TIP_press_losses));
+        std::cout << "intake pressure [psi]= " << daneE85_custom.intake_press << "\n";
 
-	//obliczenie stosunku cisnien
+        daneE85_custom.press_ratio = calc_press_ratio(daneE85_custom.intake_press, daneE85_custom.compressor_discharge_press);
+        std::cout << "PRESSURE RATIO = " << daneE85_custom.press_ratio << "\n";
 
-	daneE85_100HP.compressor_discharge_press = calc_compressor_discharge_press(
-		daneE85_100HP.MAP_req_peak_power, press_losses_intercooler);
-	std::cout << "compressor_dischage_pressure [psi] = " << daneE85_100HP.compressor_discharge_press << "\n";
+        daneE85_custom.Wa_peak_torque = calc_Wa_peak_torque(
+            daneE85_custom.MAP_req_peak_power, daneE85_custom.VE, daneE85_custom.N_peak_torque,
+            daneE85_custom.Vd, daneE85_custom.R, daneE85_custom.Tm);
+        std::cout << "Wa for peak torque = " << daneE85_custom.Wa_peak_torque << "\n";
 
-	daneE85_100HP.intake_press = Pa_to_psi(calc_intake_press(
-		atmospheric_press_Pa, press_coefficient, TIP_press_losses));
-	std::cout << "intake pressure [psi]= " << daneE85_100HP.intake_press << "\n";
+        std::cout << "gauge boost pressure [bar] = " << psi_to_bar(
+            daneE85_custom.compressor_discharge_press - Pa_to_psi(atmospheric_press_Pa)) << "\n\n";
+    }
 
-	daneE85_100HP.press_ratio = calc_press_ratio(daneE85_100HP.intake_press, daneE85_100HP.compressor_discharge_press);
-	std::cout << "PRESSURE RATIO = " << daneE85_100HP.press_ratio << "\n";
+    //RON98
+    std::cout << "==================\nObliczenia dla benzyny RON98\n==================\n\n";
+    for (int power : powers) {
+        std::cout << "=========================\nObliczenia dla RON98, target_hp=" << power << "\n=========================\n";
 
-	daneE85_100HP.Wa_peak_torque = calc_Wa_peak_torque(
-		daneE85_100HP.MAP_req_peak_power,daneE85_100HP.VE,daneE85_100HP.N_peak_torque,daneE85_100HP.Vd,daneE85_100HP.R,daneE85_100HP.Tm);
-	std::cout << "Wa for peak torque = " << daneE85_100HP.Wa_peak_torque << "\n";
+        data daneRon98_custom;
 
-	std::cout << "gauge boost pressure [bar] = " << psi_to_bar(
-		daneE85_100HP.compressor_discharge_press - Pa_to_psi(atmospheric_press_Pa))<<"\n";
+        daneRon98_custom.HP = power;
+        daneRon98_custom.AFR = 11.5;
+        daneRon98_custom.BSFC = 0.55;
+        daneRon98_custom.R = 639.6;
+        daneRon98_custom.Tm = 104;
+        daneRon98_custom.VE = 0.9;
+        daneRon98_custom.N_peak_power = 10000;
+        daneRon98_custom.N_peak_torque = 6000;
+        daneRon98_custom.Vd = 29.3;
 
-	return 0;
+        //obliczenia dla benzyny RON98
+        daneRon98_custom.Wa_peak_power = calc_Wa(daneRon98_custom.HP, daneRon98_custom.AFR, daneRon98_custom.BSFC);
+        daneRon98_custom.MAP_req_peak_power = calc_MAP_req(
+            daneRon98_custom.Wa_peak_power, daneRon98_custom.R, daneRon98_custom.Tm, daneRon98_custom.VE,
+            daneRon98_custom.N_peak_power, daneRon98_custom.Vd);
+
+        std::cout << "Wa = " << daneRon98_custom.Wa_peak_power << "\n";
+        std::cout << "MAP_req = " << daneRon98_custom.MAP_req_peak_power << "\n";
+
+        daneRon98_custom.compressor_discharge_press = calc_compressor_discharge_press(
+            daneRon98_custom.MAP_req_peak_power, press_losses_intercooler);
+        std::cout << "compressor_dischage_pressure [psi] = " << daneRon98_custom.compressor_discharge_press << "\n";
+
+        daneRon98_custom.intake_press = Pa_to_psi(calc_intake_press(
+            atmospheric_press_Pa, press_coefficient, TIP_press_losses));
+        std::cout << "intake pressure [psi]= " << daneRon98_custom.intake_press << "\n";
+
+        daneRon98_custom.press_ratio = calc_press_ratio(daneRon98_custom.intake_press, daneRon98_custom.compressor_discharge_press);
+        std::cout << "PRESSURE RATIO = " << daneRon98_custom.press_ratio << "\n";
+
+        daneRon98_custom.Wa_peak_torque = calc_Wa_peak_torque(
+            daneRon98_custom.MAP_req_peak_power, daneRon98_custom.VE, daneRon98_custom.N_peak_torque,
+            daneRon98_custom.Vd, daneRon98_custom.R, daneRon98_custom.Tm);
+        std::cout << "Wa for peak torque = " << daneRon98_custom.Wa_peak_torque << "\n";
+
+        std::cout << "gauge boost pressure [bar] = " << psi_to_bar(
+            daneRon98_custom.compressor_discharge_press - Pa_to_psi(atmospheric_press_Pa)) << "\n\n";
+    }
+
+    return 0;
 }
