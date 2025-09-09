@@ -1,0 +1,6 @@
+/build/
+/CmakeFiles/
+/CmakeCache.txt
+/*.user
+/.vs/
+/.vscode/ipch
